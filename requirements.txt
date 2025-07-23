@@ -6,3 +6,4 @@ rispy
 transformers
 plotly
 scikit-learn
+bcrypt
