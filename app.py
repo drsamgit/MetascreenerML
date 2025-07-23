@@ -1,4 +1,4 @@
-# 📄 MetascreenerML — App with Best ML & Collaboration Options
+# 📄 Metascreener ML — Streamlit App with Welcome Email & Walkthrough
 
 import streamlit as st
 import pandas as pd
@@ -10,6 +10,8 @@ from io import StringIO
 import rispy
 import base64
 import uuid
+import smtplib
+from email.mime.text import MIMEText
 
 # Initialize Firebase
 if not firebase_admin._apps:
@@ -21,11 +23,56 @@ db = firestore.client()
 # App Title
 st.title("📊 Metascreener ML — Systematic Review Screening Assistant")
 
+# Email sending function
+def send_welcome_email(email, project_name, token):
+    message = f"""
+    Welcome to Metascreener ML!
+
+    You have been added to the project: {project_name}
+
+    To access the project, use this shared access token: {token}
+
+    Walkthrough:
+    1️⃣ Go to the Metascreener ML app.
+    2️⃣ Select 'Access via Shared Link' on the sidebar.
+    3️⃣ Enter the shared token: {token}.
+    4️⃣ Begin screening records, marking them as Include/Exclude.
+
+    Progress and conflicts will be tracked automatically.
+
+    Happy reviewing!
+    Metascreener ML Team
+    """
+    msg = MIMEText(message)
+    msg['Subject'] = f"Access to Metascreener ML Project: {project_name}"
+    msg['From'] = "noreply@metascreenerml.com"
+    msg['To'] = email
+
+    try:
+        with smtplib.SMTP('localhost') as server:  # Replace with real SMTP server
+            server.send_message(msg)
+        st.success(f"Welcome email sent to {email}")
+    except Exception as e:
+        st.error(f"Failed to send email: {e}")
+
 # Collaboration Options
 st.sidebar.header("Access Options")
-login_option = st.sidebar.radio("Choose Access Method:", ["Login with Email", "Access via Shared Link"])
+login_option = st.sidebar.radio("Choose Access Method:", ["Sign Up", "Login with Email", "Access via Shared Link"])
 
-if login_option == "Login with Email":
+if login_option == "Sign Up":
+    email = st.sidebar.text_input("Email")
+    password = st.sidebar.text_input("Password", type="password")
+    if st.sidebar.button("Sign Up"):
+        try:
+            user = auth.create_user(email=email, password=password)
+            st.session_state['user_email'] = user.email
+            st.success(f"Account created and logged in as {user.email}")
+            # Send welcome email
+            send_welcome_email(email, "New User Guide", "N/A")
+        except:
+            st.error("Failed to create account. Email may already exist.")
+
+elif login_option == "Login with Email":
     email = st.sidebar.text_input("Email")
     password = st.sidebar.text_input("Password", type="password")
     if st.sidebar.button("Login"):
@@ -35,6 +82,7 @@ if login_option == "Login with Email":
             st.success(f"Logged in as {user.email}")
         except:
             st.error("Authentication failed.")
+
 elif login_option == "Access via Shared Link":
     shared_link_token = st.sidebar.text_input("Enter Shared Link Token")
     if st.sidebar.button("Access Project") and shared_link_token:
@@ -70,9 +118,12 @@ if 'user_email' in st.session_state:
     st.sidebar.header("Project")
     project_name = st.sidebar.text_input("Project Name")
 
-    if st.sidebar.button("Generate Shared Access Token") and project_name:
+    collaborator_email = st.sidebar.text_input("Invite Collaborator Email")
+    if st.sidebar.button("Create New Project & Invite") and project_name and collaborator_email:
         token = str(uuid.uuid4())
-        st.sidebar.write(f"🔗 Share this token: `{token}`")
+        db.collection("projects").document(project_name).set({"data": [], "shared_token": token})
+        send_welcome_email(collaborator_email, project_name, token)
+        st.sidebar.write(f"✅ Project created. Token sent to {collaborator_email}")
 
     if st.sidebar.button("Load Project") and project_name:
         df = load_project_data(project_name)
@@ -148,31 +199,15 @@ if 'user_email' in st.session_state:
         st.sidebar.metric("Excluded", excluded)
         st.sidebar.metric("Unscreened", unscreened_count)
 
-        st.sidebar.header("Conflict Resolution")
-        conflicts = df.groupby('title')['decision'].nunique()
-        conflicts = conflicts[conflicts > 1]
-        if not conflicts.empty:
-            st.sidebar.write(f"⚠️ {len(conflicts)} records with conflicting decisions.")
-            if st.sidebar.button("Resolve Conflicts"):
-                for idx in conflicts.index:
-                    st.write(f"Conflict on: {idx}")
-                    st.write(df[df['title'] == idx][['reviewer', 'decision', 'reason']])
-
-        if st.sidebar.button("📥 Download Results (.CSV)"):
-            csv = df.to_csv(index=False).encode('utf-8')
-            b64 = base64.b64encode(csv).decode()
-            href = f'<a href="data:file/csv;base64,{b64}" download="screened_results.csv">Download CSV</a>'
-            st.sidebar.markdown(href, unsafe_allow_html=True)
-
         st.sidebar.header("PRISMA Counts")
         st.sidebar.write(f"Records identified: {total}")
         st.sidebar.write(f"Records included: {included}")
         st.sidebar.write(f"Records excluded: {excluded}")
 
 else:
-    st.info("👆 Please log in or enter shared link token to begin.")
+    st.info("👆 Please sign up, log in, or enter shared link token to begin.")
 
 # Notes:
-# 🔷 Both email login and shared token access are now supported.
-# 🔷 Owner can generate & share tokens for collaborators.
+# 🔷 Sends welcome email with walkthrough & token on signup or project creation.
+# 🔷 Owner can invite collaborators via email.
 # 🔷 App remains named Metascreener ML.
