@@ -5,9 +5,6 @@ import uuid
 import pandas as pd
 import rispy
 from datetime import datetime, timedelta
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import os
 
 DB_FILE = 'users.json'
@@ -59,7 +56,7 @@ page = st.sidebar.radio("Menu", ["Sign Up", "Login", "Reset Password", "Set New 
 
 # Auth
 if page == "Sign Up":
-    email = st.text_input("Email")
+    email = st.text_input("Email").strip().lower()
     pw = st.text_input("Password", type="password")
     role = st.selectbox("Role", ["reviewer", "admin"])
     if st.button("Register"):
@@ -72,7 +69,7 @@ if page == "Sign Up":
 
 elif page == "Login" or st.session_state.get("logged_in", False):
     if not st.session_state.get("logged_in", False):
-        email = st.text_input("Email")
+        email = st.text_input("Email").strip().lower()
         pw = st.text_input("Password", type="password")
         if st.button("Login"):
             if email in users and check_password(pw, users[email]['password_hash']):
@@ -123,7 +120,7 @@ elif page == "Login" or st.session_state.get("logged_in", False):
                 st.experimental_rerun()
 
 elif page == "Reset Password":
-    email = st.text_input("Email")
+    email = st.text_input("Email").strip().lower()
     if st.button("Send Reset Link"):
         if email in users:
             token = generate_token()
