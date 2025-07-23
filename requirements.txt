@@ -1,7 +1,8 @@
-streamlit
-pandas
-numpy
-scikit-learn
-transformers
-firebase-admin
-rispy
+streamlit>=1.25,<2.0
+pandas>=2.0,<3.0
+numpy>=1.24,<2.0
+firebase-admin>=6.2,<7.0
+rispy>=1.4,<2.0
+transformers>=4.40,<5.0
+plotly>=5.20,<6.0
+scikit-learn>=1.4,<2.0
