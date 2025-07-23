@@ -1,4 +1,4 @@
-# 📄 Streamlit Screening App with Best ML, Flexible Collaboration Options
+# 📄 MetascreenerML — App with Best ML & Collaboration Options
 
 import streamlit as st
 import pandas as pd
@@ -9,16 +9,20 @@ from firebase_admin import credentials, firestore, auth
 from io import StringIO
 import rispy
 import base64
+import uuid
 
 # Initialize Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_credentials.json")  # Replace with your Firebase service account file
+    cred = credentials.Certificate("firebase_credentials.json")
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
-# User Authentication or Direct Link
-st.sidebar.header("Collaboration Options")
+# App Title
+st.title("📊 Metascreener ML — Systematic Review Screening Assistant")
+
+# Collaboration Options
+st.sidebar.header("Access Options")
 login_option = st.sidebar.radio("Choose Access Method:", ["Login with Email", "Access via Shared Link"])
 
 if login_option == "Login with Email":
@@ -31,9 +35,9 @@ if login_option == "Login with Email":
             st.success(f"Logged in as {user.email}")
         except:
             st.error("Authentication failed.")
-else:
+elif login_option == "Access via Shared Link":
     shared_link_token = st.sidebar.text_input("Enter Shared Link Token")
-    if st.sidebar.button("Access via Link") and shared_link_token:
+    if st.sidebar.button("Access Project") and shared_link_token:
         st.session_state['user_email'] = f"guest_{shared_link_token}"
         st.success("Access granted via shared link.")
 
@@ -62,11 +66,13 @@ def bert_predict(df):
         return unscreened.sort_values('pred_score', ascending=False)
     return df[df['decision'] == '']
 
-st.title("📊 Systematic Review Screening Assistant (Best ML & Collaboration)")
-
 if 'user_email' in st.session_state:
     st.sidebar.header("Project")
     project_name = st.sidebar.text_input("Project Name")
+
+    if st.sidebar.button("Generate Shared Access Token") and project_name:
+        token = str(uuid.uuid4())
+        st.sidebar.write(f"🔗 Share this token: `{token}`")
 
     if st.sidebar.button("Load Project") and project_name:
         df = load_project_data(project_name)
@@ -167,6 +173,6 @@ else:
     st.info("👆 Please log in or enter shared link token to begin.")
 
 # Notes:
-# 🔷 Requires 'firebase_credentials.json' and appropriate Firestore rules.
-# 🔷 BERT model used for relevance scoring.
-# 🔷 Conflict resolution can be expanded with voting or consensus mechanics.
+# 🔷 Both email login and shared token access are now supported.
+# 🔷 Owner can generate & share tokens for collaborators.
+# 🔷 App remains named Metascreener ML.
