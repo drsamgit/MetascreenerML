@@ -16,8 +16,10 @@ import plotly.graph_objects as go
 
 # Initialize Firebase
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_credentials.json")
-    firebase_admin.initialize_app(cred)
+   import json
+cred_json = json.loads(st.secrets["firebase_credentials_json"])
+cred = credentials.Certificate(cred_json)
+firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
