@@ -6,10 +6,14 @@ from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
 
 DB_FILE = 'users.json'
 
 def load_users():
+    if not os.path.exists(DB_FILE):
+        with open(DB_FILE, 'w') as f:
+            json.dump({}, f)
     with open(DB_FILE, 'r') as f:
         return json.load(f)
 
